@@ -1,0 +1,11 @@
+﻿@using System.Collections
+@using Pipe.Module.Core.Models
+
+@model List<AppSetting>
+
+<h1>Test</h1>
+@foreach(var el in Model)
+{
+    <p>@el.Id</p>
+    <p>@el.Value</p>
+}

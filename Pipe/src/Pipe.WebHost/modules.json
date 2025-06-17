@@ -1,0 +1,10 @@
+[
+  {
+    "id": "Pipe.Module.TestProject",
+    "version": "1.0.0"
+  },
+  {
+    "id": "Pipe.Module.Core",
+    "version": "1.0.0"
+  }
+]
