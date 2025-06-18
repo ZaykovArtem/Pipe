@@ -5,7 +5,6 @@ using Pipe.Infrastructure.Modules;
 using Pipe.Module.Core.Data;
 using Pipe.Module.Core.Extensions;
 using Pipe.WebHost.Extensions;
-using System.Data;
 
 var builder = WebApplication.CreateBuilder(args);
 ConfigureService();
@@ -28,10 +27,19 @@ void ConfigureService()
 
 	builder.Services.AddModules();
 	builder.Services.AddCustomizedDataStore(builder.Configuration);
+	builder.Services.AddCustomizedIdentity(builder.Configuration);
 	builder.Services.AddTransient(typeof(IRepository<>), typeof(Repository<>));
 	builder.Services.AddTransient(typeof(IRepositoryWithTypedId<,>), typeof(RepositoryWithTypedId<,>));
 	builder.Services.AddRazorPages();
+	builder.Services.AddServerSideBlazor();
 	builder.Services.AddMvc();
+	builder.Services.AddAntiforgery(options =>
+	{
+		options.HeaderName = "X-XSRF-TOKEN"; // Äëÿ AJAX/SPA
+		options.Cookie.Name = "XSRF-TOKEN";
+		options.Cookie.SecurePolicy = CookieSecurePolicy.SameAsRequest;
+
+	});
 	foreach (var module in GlobalConfiguration.Modules)
 	{
 		var moduleInitializerType = module.Assembly.GetTypes()
@@ -54,6 +62,7 @@ void Configure()
 	}
 	app.UseStaticFiles();
 	app.UseRouting();
+	app.UseAuthorization();
 	app.UseEndpoints(endpoints =>
 	{
 		endpoints.MapControllerRoute(
@@ -62,6 +71,8 @@ void Configure()
 		endpoints.MapControllerRoute(
 			name: "default",
 			pattern: "{controller=Home}/{action=Index}/{id?}");
+		endpoints.MapBlazorHub();
+		endpoints.MapFallbackToPage("/admin/{**segment}", "/admin/_Host");
 	});
 	var moduleInitializers = app.Services.GetServices<IModuleInitializer>();
 	foreach (var moduleInitializer in moduleInitializers)

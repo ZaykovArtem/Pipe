@@ -1,0 +1,18 @@
+﻿<CascadingAuthenticationState>
+<Router AppAssembly="@typeof(App).Assembly" AdditionalAssemblies="GlobalConfiguration.Modules.Select(x=>x.Assembly).ToList()">
+    <Found Context="routeData">
+            <AuthorizeRouteView RouteData="@routeData" DefaultLayout="typeof(MainLayout)">
+                <NotAuthorized>
+                    Вход воспрещён!
+                </NotAuthorized>
+                <!-- -->
+            </AuthorizeRouteView>
+    </Found>
+    <NotFound>
+            <PageTitle>Эх</PageTitle>
+            <LayoutView Layout="@typeof(MainLayout)">
+                <p role="alert">Что то не так...</p>
+            </LayoutView>
+    </NotFound>
+</Router>
+</CascadingAuthenticationState>

@@ -1,0 +1,38 @@
+﻿<!doctype html>
+<html lang="ru">
+    <head>
+        <meta charset="utf-8" />
+        <meta name="viewport" content="width=device-width, initial-scale=1, shrink-to-fit=no">
+        <title>@ViewData["Title"] - Pipe</title>
+        @RenderSection("additionalMeta", false)
+        <link feature-append-version="true" rel="stylesheet" href="~/lib/bootstrap/css/bootstrap.css" />
+        @RenderSection("head", required: false)
+    </head>
+    <body>
+        <div class="top-bar">
+            <div class="container">
+                <ul class="nav justify-content-end">
+                   <partial name="_LoginPartial" />
+                </ul>
+            </div>
+        </div>
+        <div class="container body-content clearfix">
+            @RenderBody()
+        </div>
+        <div class="footer-content">
+            <div class="container">
+                <div class="row">
+                    <div class="col-md-6">
+                        <h4>Pipe</h4>
+                    </div>
+                </div>
+                <hr />
+                <p class="pull-left">&copy; @DateTime.Now.Year - Pipe</p>
+                <p class="pull-right">Powered by <strong>Pipe</strong></p>
+            </div>
+        </div>
+        <script feature-append-version="true" src="~/lib/jquery/jquery.js"></script>
+        <script feature-append-version="true" src="~/lib/bootstrap/js/bootstrap.js"></script>
+         @RenderSection("scripts", required: false)
+    </body>
+</html>

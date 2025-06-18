@@ -1,0 +1,60 @@
+﻿@model RegisterViewModel
+@inject SignInManager<User> SignInManager
+@using Microsoft.AspNetCore.Authentication
+@using Microsoft.AspNetCore.Authentication.OpenIdConnect
+@using Microsoft.AspNetCore.Identity
+@using Pipe.Module.Core.Areas.Core.ViewModels.Account
+@using Pipe.Module.Core.Models
+@{
+    ViewData["Title"] = "Регистрация в";
+}
+
+<h2>Регистрируйся</h2>
+
+<h4>Создание нового аккаунта</h4>
+<hr />
+<div class="row">
+    <div class="col-md-8">
+        <form asp-area="Core" asp-controller="Account" asp-action="Register" asp-route-returnurl="@ViewData["ReturnUrl"]" method="post" role="form">
+            @Html.AntiForgeryToken()
+            <div asp-validation-summary="All" class="text-danger"></div>
+            <div class="form-group row">
+                <label asp-for="Email" class="col-md-4 col-form-label">Почта</label>
+                <div class="col-md-8">
+                    <input asp-for="Email" class="form-control" />
+                    <span asp-validation-for="Email" class="text-danger"></span>
+                </div>
+            </div>
+            <div class="form-group row">
+                <label asp-for="FullName" class="col-md-4 col-form-label">Имя</label>
+                <div class="col-md-8">
+                    <input asp-for="FullName" class="form-control" />
+                    <span asp-validation-for="FullName" class="text-danger"></span>
+                </div>
+            </div>
+            <div class="form-group row">
+                <label asp-for="Password" class="col-md-4 col-form-label">Пароль</label>
+                <div class="col-md-8">
+                    <input asp-for="Password" class="form-control" />
+                    <span asp-validation-for="Password" class="text-danger"></span>
+                </div>
+            </div>
+            <div class="form-group row">
+                <label asp-for="ConfirmPassword" class="col-md-4 col-form-label">Подтвердите пароль</label>
+                <div class="col-md-8">
+                    <input asp-for="ConfirmPassword" class="form-control" />
+                    <span asp-validation-for="ConfirmPassword" class="text-danger"></span>
+                </div>
+            </div>
+            <div class="form-group row">
+                <div class="offset-md-4 col-md-8">
+                    <button type="submit" class="btn btn-primary">Регистрация в Pipe</button>
+                </div>
+            </div>
+        </form>
+    </div>
+</div>
+
+@section scripts {
+    <partial name="_ValidationScriptsPartial" />
+}
