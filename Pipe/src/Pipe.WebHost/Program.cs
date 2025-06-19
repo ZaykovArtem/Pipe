@@ -31,6 +31,7 @@ void ConfigureService()
 	builder.Services.AddTransient(typeof(IRepository<>), typeof(Repository<>));
 	builder.Services.AddTransient(typeof(IRepositoryWithTypedId<,>), typeof(RepositoryWithTypedId<,>));
 	builder.Services.AddRazorPages();
+	builder.Services.AddOutputCache();
 	builder.Services.AddServerSideBlazor();
 	builder.Services.AddMvc();
 	builder.Services.AddAntiforgery(options =>
@@ -57,6 +58,8 @@ void Configure()
 {
 	if (app.Environment.IsDevelopment())
 	{
+		app.UseExceptionHandler("/Error");
+		app.UseStatusCodePagesWithReExecute("/Error/{0}");
 		app.UseDeveloperExceptionPage();
 		app.UseMigrationsEndPoint();
 	}
