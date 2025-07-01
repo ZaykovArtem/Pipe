@@ -206,6 +206,9 @@ namespace Pipe.WebHost.Migrations
                         .IsConcurrencyToken()
                         .HasColumnType("text");
 
+                    b.Property<DateTimeOffset>("CreatedOn")
+                        .HasColumnType("timestamp with time zone");
+
                     b.Property<string>("Email")
                         .HasMaxLength(256)
                         .HasColumnType("character varying(256)");
@@ -219,6 +222,12 @@ namespace Pipe.WebHost.Migrations
                     b.Property<string>("FullName")
                         .HasMaxLength(450)
                         .HasColumnType("character varying(450)");
+
+                    b.Property<bool>("IsDeleted")
+                        .HasColumnType("boolean");
+
+                    b.Property<DateTimeOffset>("LatestUpdatedOn")
+                        .HasColumnType("timestamp with time zone");
 
                     b.Property<bool>("LockoutEnabled")
                         .HasColumnType("boolean");

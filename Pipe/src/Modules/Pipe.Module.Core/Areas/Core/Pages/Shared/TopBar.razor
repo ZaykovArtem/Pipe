@@ -1,0 +1,18 @@
+﻿<PageTitle>@PageTitle</PageTitle>
+<MudPaper Class="pa-6 my-6"><MudText Typo="Typo.h4">@H1</MudText></MudPaper>
+
+@code {
+    [Parameter] public string H1 { get; set; } = "Pipe";
+    [Parameter] public string PageTitle
+    {
+        set
+        {
+            _pageTitle = value;
+        }
+        get
+        {
+            return string.IsNullOrWhiteSpace(_pageTitle) ? H1 : _pageTitle;
+        }
+    }
+    private string _pageTitle;
+}

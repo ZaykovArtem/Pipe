@@ -83,7 +83,7 @@ namespace Pipe.Module.Core.Areas.Core.Controllers
 			ViewData["ReturnUrl"] = returnUrl;
 			if (ModelState.IsValid)
 			{
-				var user = new User { UserName = model.Email, Email = model.Email, FullName= model.FullName };
+				var user = new User { UserName = model.Email, Email = model.Email, FullName= model.FullName, LatestUpdatedOn = DateTimeOffset.Now.UtcDateTime, CreatedOn = DateTimeOffset.Now.UtcDateTime };
 				var result = await _userManager.CreateAsync(user, model.Password);
 				if (result.Succeeded)
 				{
@@ -99,7 +99,7 @@ namespace Pipe.Module.Core.Areas.Core.Controllers
 		}
 		//
 		// POST: /Account/LogOff
-		[HttpPost]
+		[HttpPost("logout")]
 		[ValidateAntiForgeryToken]
 		public async Task<IActionResult> LogOff()
 		{

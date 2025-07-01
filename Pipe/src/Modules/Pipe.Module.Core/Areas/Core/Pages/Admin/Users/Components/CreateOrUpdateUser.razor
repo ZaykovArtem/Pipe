@@ -1,0 +1,237 @@
+﻿@page "/admin/users/create"
+@page "/admin/users/edit/{UserId}"
+@using Pipe.Module.Core.Areas.Core.Pages.Shared
+@using Pipe.Module.Core.Areas.Core.ViewModels
+@using Pipe.Module.Core.Services
+@attribute [Authorize(Roles = "admin")]
+@inject IApiService _apiService
+@inject ISnackbar _snackbar
+@inject NavigationManager _navigation
+
+<TopBar H1="@(_isEditMode ? "Редактирование пользователя" : "Создание пользователя")"></TopBar>
+<MudPaper Class="pa-8" Elevation="1" Style="max-width: 800px; margin: 24px auto;">
+    <EditForm Model="_userForm" OnValidSubmit="HandleSubmit">
+        <MudGrid>
+            <MudItem xs="12" md="6" Class="pr-md-4">
+                <MudTextField @bind-Value="_userForm.FullName" 
+                             Label="Полное имя" 
+                             Required="true"
+                             RequiredError="Обязательное поле"
+                             Class="mb-4" />
+            </MudItem>
+            <MudItem xs="12" md="6">
+                <MudTextField @bind-Value="_userForm.Email" 
+                             Label="Email" 
+                             Required="true"
+                             RequiredError="Обязательное поле"
+                             InputType="InputType.Email"
+                             Class="mb-4" />
+            </MudItem>
+            <MudItem xs="12" Class="mb-4">
+                <MudSelect T="RoleForm"
+                           Label="Роли"
+                           MultiSelection="true"
+                           SelectedValues="_selectedRoles"
+                           SelectedValuesChanged="(x)=>OnSelectedRolesChanged(x.ToList())"
+                           ToStringFunc="GetRoleName"
+                           TransformOrigin="Origin.TopCenter"
+                           AnchorOrigin="Origin.BottomCenter"
+                           Class="full-width">
+                    @foreach (var role in _availableRoles)
+                    {
+                        <MudSelectItem Value="@role" />
+                    }
+                </MudSelect>
+            </MudItem>
+            @if (!_isEditMode)
+            {
+                <MudItem xs="12" md="6" Class="pr-md-4">
+                    <MudTextField @bind-Value="_userForm.Password" 
+                                 Label="Пароль" 
+                                 Required="true"
+                                 RequiredError="Обязательное поле"
+                                 InputType="InputType.Password"
+                                 Class="mb-4" />
+                </MudItem>
+                <MudItem xs="12" md="6">
+                    <MudTextField @bind-Value="_userForm.ConfirmPassword" 
+                                 Label="Подтверждение пароля" 
+                                 Required="true"
+                                 RequiredError="Обязательное поле"
+                                 InputType="InputType.Password"
+                                 Class="mb-4" />
+                </MudItem>
+            }
+
+            @if (_isEditMode)
+            {
+                <MudItem xs="12" Class="mb-4">
+                    <MudCheckBox @bind-Value="_changePassword" 
+                                Label="Изменить пароль"
+                                Class="mb-2" />
+                </MudItem>
+
+                @if (_changePassword)
+                {
+                    <MudItem xs="12" md="6" Class="pr-md-4">
+                        <MudTextField @bind-Value="_userForm.Password" 
+                                     Label="Новый пароль" 
+                                     Required="true"
+                                     RequiredError="Обязательное поле"
+                                     InputType="InputType.Password"
+                                     Class="mb-4" />
+                    </MudItem>
+                    <MudItem xs="12" md="6">
+                        <MudTextField @bind-Value="_userForm.ConfirmPassword" 
+                                     Label="Подтверждение пароля" 
+                                     Required="true"
+                                     RequiredError="Обязательное поле"
+                                     InputType="InputType.Password"
+                                     Class="mb-4" />
+                    </MudItem>
+                }
+            }
+
+            <MudItem xs="12" Class="mt-4">
+                <div class="d-flex justify-end" style="gap: 8px;">
+                    <MudButton Variant="Variant.Text" 
+                              Color="Color.Default">
+                        Отмена
+                    </MudButton>
+                    <MudButton ButtonType="ButtonType.Submit"
+                              Variant="Variant.Filled" 
+                              Color="Color.Primary">
+                        @(_isEditMode ? "Сохранить" : "Создать")
+                    </MudButton>
+                </div>
+            </MudItem>
+        </MudGrid>
+    </EditForm>
+</MudPaper>
+
+@code {
+    [Parameter] public string UserId { get; set; }
+
+    private UserForm _userForm = new();
+    private List<RoleForm> _availableRoles = new();
+    private List<RoleForm> _selectedRoles = new();
+    private bool _isEditMode;
+    private bool _changePassword;
+    private bool _loading;
+
+    protected override async Task OnInitializedAsync()
+    {
+        _isEditMode = !string.IsNullOrEmpty(UserId);
+        
+        await LoadAvailableRoles();
+
+        if (_isEditMode)
+        {
+            await LoadUserData();
+        }
+    }
+
+    private async Task LoadAvailableRoles()
+    {
+        try
+        {
+            var result = await _apiService.GetAsync<List<RoleForm>>("api/roles/grid");
+            if (result.IsSuccess)
+            {
+                _availableRoles = result.Value.OrderBy(r => r.Name).ToList();
+            }
+        }
+        catch (Exception ex)
+        {
+            _snackbar.Add($"Ошибка загрузки ролей: {ex.Message}", Severity.Error);
+        }
+    }
+    private async Task LoadUserData()
+    {
+        try
+        {
+            _loading = true;
+            var result = await _apiService.GetAsync<UserForm>($"api/users/{UserId}");
+            if (result.IsSuccess)
+            {
+                _userForm = result.Value;
+                _selectedRoles = _availableRoles
+                    .Where(role => result.Value.RoleIds.Contains(role.Id))
+                .ToList();
+            }
+        }
+        catch (Exception ex)
+        {
+            _snackbar.Add($"Ошибка загрузки данных пользователя: {ex.Message}", Severity.Error);
+        }
+        finally
+        {
+            _loading = false;
+        }
+    }
+
+    private async Task HandleSubmit()
+    {
+        if (!ValidateForm())
+            return;
+
+        try
+        {
+            _loading = true;
+            
+            _userForm.RoleIds = _selectedRoles.Select(x=>x.Id).ToList();
+            
+            if (_isEditMode && !_changePassword)
+            {
+                _userForm.Password = null;
+                _userForm.ConfirmPassword = null;
+            }
+
+            var result = _isEditMode 
+                ? await _apiService.PutAsync<UserForm>($"api/users/{UserId}", _userForm)
+                : await _apiService.PostAsync<UserForm>("api/users", _userForm);
+
+            if (result.IsSuccess)
+            {
+                _snackbar.Add(_isEditMode ? "Пользователь обновлен" : "Пользователь создан", Severity.Success);
+                _navigation.NavigateTo("/admin/users");
+            }
+        }
+        catch (Exception ex)
+        {
+            _snackbar.Add($"Ошибка: {ex.Message}", Severity.Error);
+        }
+        finally
+        {
+            _loading = false;
+        }
+    }
+
+    private bool ValidateForm()
+    {
+        if (_userForm.Password != _userForm.ConfirmPassword)
+        {
+            _snackbar.Add("Пароли не совпадают", Severity.Error);
+            return false;
+        }
+
+        if (!_selectedRoles.Any())
+        {
+            _snackbar.Add("Выберите хотя бы одну роль", Severity.Error);
+            return false;
+        }
+
+        return true;
+    }
+    // Функция для отображения названия роли
+    private string GetRoleName(RoleForm role)
+    {
+        return role?.Name ?? string.Empty;
+    }
+
+    // Обработчик изменения выбранных ролей
+    private void OnSelectedRolesChanged(List<RoleForm> selected)
+    {
+        _selectedRoles = selected;
+    }
+}

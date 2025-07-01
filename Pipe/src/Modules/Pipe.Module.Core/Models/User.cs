@@ -14,6 +14,9 @@ namespace Pipe.Module.Core.Models
 		[MaxLength(450)]
 		public string FullName { get; set; }
 		public IList<UserRole> Roles { get; set; } = new List<UserRole>();
+		public DateTimeOffset CreatedOn { get; init; }
+		public DateTimeOffset LatestUpdatedOn { get; set; }
+		public bool IsDeleted { get; set; }
 		public string ExtensionData { get; set; }
 	}
 }

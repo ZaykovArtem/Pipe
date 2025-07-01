@@ -1,0 +1,14 @@
+<Project Sdk="Microsoft.NET.Sdk.Razor">
+
+  <PropertyGroup>
+    <TargetFramework>net9.0</TargetFramework>
+    <Nullable>enable</Nullable>
+    <ImplicitUsings>enable</ImplicitUsings>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <ProjectReference Include="..\..\Pipe.Infrastructure\Pipe.Infrastructure.csproj" />
+    <ProjectReference Include="..\Pipe.Module.Core\Pipe.Module.Core.csproj" />
+  </ItemGroup>
+
+</Project>

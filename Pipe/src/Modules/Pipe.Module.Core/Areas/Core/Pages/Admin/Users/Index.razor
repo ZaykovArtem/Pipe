@@ -1,0 +1,249 @@
+﻿@page "/admin/users"
+@using Pipe.Infrastructure.SmartTable
+@using Pipe.Module.Core.Areas.Core.Pages.Shared
+@using Pipe.Module.Core.Areas.Core.ViewModels
+@using Pipe.Module.Core.Services
+@using System.Threading
+@attribute [Authorize(Roles = "admin")]
+@inject IApiService _apiService
+@inject ISnackbar _snackbar
+@inject NavigationManager _navigation
+
+<TopBar H1="Пользователи"></TopBar>
+
+
+        <MudTable T="UserForm"
+            ServerData="@LoadUsers"
+                 Hover="true"
+                 Striped="true"
+                  Loading="@_loading" @ref="_table">
+            <ToolBarContent>
+            <MudButton Class="col-xs-12" Variant="Variant.Outlined" EndIcon="@Icons.Material.Filled.Add" Color="Color.Primary" OnClick="CreateUser">Новый пользователь</MudButton>
+                <MudSpacer />
+                <MudTextField T="string" 
+                     Value="@_searchText"
+                     ValueChanged="@(async s => await OnSearch(s))" 
+                     Placeholder="Введите имя для поиска"
+                     Adornment="Adornment.Start"
+                     AdornmentIcon="@Icons.Material.Filled.Search" 
+                     IconSize="Size.Medium"
+                      Class="mt-0 col-xs-12"
+                     Immediate="true">
+                </MudTextField>
+               
+            </ToolBarContent>
+
+            <HeaderContent>
+                <MudTh Style="display: flex; align-items: center; gap: 8px;">
+                    <MudText>Роли</MudText>
+
+                        <MudMenu Icon="@Icons.Material.Filled.FilterList" Style="display: inline-block; margin-left: 8px; ">
+
+                            <ActivatorContent>
+
+                                @if (_activeRoleFilters.Any())
+                                {
+                                    <MudBadge Dot="true" Color="Color.Primary">
+                                        <MudIcon Icon="@Icons.Material.Filled.FilterList" Style="vertical-align: middle;" Color="Color.Primary" Size="Size.Small" />
+                                    </MudBadge>
+                                }
+                                else
+                                {
+                                    <MudIcon Icon="@Icons.Material.Filled.FilterList" Style="vertical-align: middle;" Size="Size.Small" />
+                                }
+                            </ActivatorContent>
+                            <ChildContent>
+                                @if (_availableRolesLoading)
+                                {
+                                    <div style="padding: 16px; display: flex; justify-content: center;">
+                                        <MudProgressCircular Size="Size.Small" />
+                                    </div>
+                                }
+                                else
+                                {
+                                    <div style="columns: 1; column-gap: 16px; padding: 16px; min-width: 200px">
+                                        @foreach (var role in _availableRoles)
+                                        {
+                                            <MudMenuItem Style="padding: 4px 16px;" >
+                                                <div style="break-inside: avoid; margin-bottom: 8px;">
+                                                    <MudCheckBox T="bool"
+                                                                Value="@_activeRoleFilters.Contains(role)"
+                                                                ValueChanged="@(async (isChecked) => await OnRoleCheckChanged(role, isChecked))"
+                                                                Class="mr-2" Style="display: inline-block;" />
+                                                     <MudText Style="display: inline-block; vertical-align: middle;" Class="pt-3">@role</MudText>
+                                                </div>
+                                            </MudMenuItem>
+                                        }
+                                    </div>
+                                }
+                            </ChildContent>
+                        </MudMenu>
+                </MudTh>
+
+                <MudTh><MudTableSortLabel SortLabel="FullName" T="UserForm">Имя</MudTableSortLabel></MudTh>
+                <MudTh><MudTableSortLabel SortLabel="Email" T="UserForm">Почта</MudTableSortLabel></MudTh>
+                <MudTh><MudTableSortLabel SortLabel="CreatedOn" T="UserForm">Дата регистрации</MudTableSortLabel></MudTh>
+                 <MudTh><MudTableSortLabel SortLabel="LatestUpdatedOn" T="UserForm">Обновлен</MudTableSortLabel></MudTh>
+                <MudTh>Действия</MudTh>
+            </HeaderContent>
+            
+            <RowTemplate>
+                <MudTd>
+                    <MudChipSet T="string">
+                        @foreach (var role in context.RoleNames)
+                        {
+                            <MudChip T="string" 
+                                    Color="@(_activeRoleFilters.Contains(role) ? Color.Primary : Color.Default)"
+                                    Variant="Variant.Outlined">
+                                @role
+                            </MudChip>
+                        }
+                    </MudChipSet>
+                </MudTd>
+                <MudTd>@context.FullName</MudTd>
+                <MudTd>@context.Email</MudTd>
+                <MudTd>@context.CreatedOn.ToString("dd.MM.yyyy")</MudTd>
+                <MudTd>@context.LatestUpdatedOn.ToString("dd.MM.yyyy")</MudTd>
+                <MudTd>
+                    <MudIconButton Icon="@Icons.Material.Filled.Edit"
+                                  Color="Color.Primary"
+                                  OnClick="() => EditUser(context.Id)" />
+                    <MudIconButton Icon="@Icons.Material.Filled.Delete"
+                                  Color="Color.Error"
+                                  OnClick="async () => await DeleteUser(context.Id)" />
+                </MudTd>
+            </RowTemplate>
+            
+            <PagerContent>
+                <MudTablePager RowsPerPageString="Пользователей на странице:"
+                              PageSizeOptions="@(new[] { 10, 20, 30, 40 ,50  })" />
+            </PagerContent>
+        </MudTable>
+
+
+@code {
+    private MudTable<UserForm> _table;
+    private bool _loading;
+    private string _searchText = string.Empty;
+    private List<string> _activeRoleFilters = new();
+    private List<string> _availableRoles = new();
+    private bool _availableRolesLoading = true;
+    private IEnumerable<UserForm> _users = new List<UserForm>();
+
+    protected override async Task OnInitializedAsync()
+    {
+        await LoadAvailableRoles();
+    }
+
+    private async Task LoadAvailableRoles()
+    {
+        try
+        {
+            _availableRolesLoading = true;
+            var result  = await _apiService.GetAsync<List<string>>("api/users/roles");
+            if (result.IsSuccess)
+                _availableRoles = result.Value;
+            _availableRoles = _availableRoles.OrderBy(r => r).ToList();
+        }
+        catch (Exception ex)
+        {
+            _snackbar.Add($"Ошибка загрузки ролей: {ex.Message}", Severity.Error);
+        }
+        finally
+        {
+            _availableRolesLoading = false;
+        }
+    }
+    private async Task OnSearch(string searchTerm)
+    {
+        _searchText = searchTerm;
+        await _table.ReloadServerData();
+    }
+    private async Task<TableData<UserForm>> LoadUsers(TableState state, CancellationToken cancellationToken)
+    {
+        try
+        {
+            _loading = true;
+            StateHasChanged();
+
+            var param = new SmartTableParam
+            {
+                Pagination = new Pagination
+                {
+                    Start = state.Page * state.PageSize,
+                    Number = state.PageSize
+                },
+                Sort = new Sort
+                {
+                    Predicate = state.SortLabel??string.Empty,
+                    Reverse = state.SortDirection == SortDirection.Descending
+                },
+                Search = new Search
+                {
+                    PredicateObject = new Dictionary<string, object>
+                    {
+                        { "name", _searchText },
+                        { "roles", _activeRoleFilters }
+                    }
+                }
+            };
+
+            var result = await _apiService.PostAsync<SmartTableResult<UserForm>>("api/users/grid", param);
+                return new TableData<UserForm> { Items = result.Value.Items, TotalItems = result.Value.TotalRecord };
+        }
+        catch (OperationCanceledException)
+        {
+            // Игнорируем отмену запроса
+            return new TableData<UserForm> { Items = new List<UserForm>(), TotalItems = 0 };
+        }
+        catch (Exception ex)
+        {
+            _snackbar.Add($"Ошибка загрузки пользователей: {ex.Message}", Severity.Error);
+            return new TableData<UserForm> { Items = new List<UserForm>(), TotalItems = 0 };
+        }
+        finally
+        {
+            _loading = false;
+            StateHasChanged();
+        }
+    }
+
+    private async Task OnRoleCheckChanged(string role, bool isChecked)
+    {
+        if (isChecked)
+        {
+            if (!_activeRoleFilters.Contains(role))
+                _activeRoleFilters.Add(role);
+        }
+        else
+        {
+            _activeRoleFilters.Remove(role);
+        }
+        await _table.ReloadServerData();
+    }
+
+
+    private void EditUser(Guid userId)
+    {
+        _navigation.NavigateTo($"/admin/users/edit/{userId}");
+    }
+    private void CreateUser()
+    {
+        _navigation.NavigateTo($"/admin/users/create");
+    }
+
+    private async Task DeleteUser(Guid userId)
+    {
+
+        try
+        {
+            await _apiService.DeleteAsync($"api/users/{userId}");
+            _snackbar.Add("Пользователь удален", Severity.Success);
+            await _table.ReloadServerData();
+        }
+        catch (Exception ex)
+        {
+            _snackbar.Add($"Ошибка удаления: {ex.Message}", Severity.Error);
+        }
+    }
+}

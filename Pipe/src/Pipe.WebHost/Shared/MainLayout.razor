@@ -5,7 +5,8 @@
 <AuthorizeView>
     <Authorized>
         <MudThemeProvider />
-
+        <MudPopoverProvider />
+        <MudSnackbarProvider />
         <MudLayout>
             <MudAppBar Elevation="1">
                 <MudIconButton Icon="@Icons.Material.Filled.Menu" Color="Color.Inherit" Edge="Edge.Start" OnClick="@((e) => DrawerToggle())" />
@@ -16,8 +17,12 @@
             <MudDrawer @bind-Open="_drawerOpen" ClipMode="DrawerClipMode.Always" Elevation="2">
                 <NavMenu></NavMenu>
             </MudDrawer>
-            <MudMainContent>
-                @Body
+            <MudMainContent Style="background: ghostwhite; min-height: 100vh;">
+                <MudContainer Fixed="true" Class="pt-4">
+                    <MudPaper Elevation="0" Style="background: ghostwhite; border-radius: 8px; min-height: calc(100vh - 64px);">
+                        @Body
+                    </MudPaper>
+                </MudContainer>
             </MudMainContent>
         </MudLayout>
     </Authorized>
