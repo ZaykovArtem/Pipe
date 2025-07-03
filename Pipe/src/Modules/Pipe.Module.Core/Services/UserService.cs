@@ -1,4 +1,5 @@
-﻿using Microsoft.AspNetCore.Identity;
+﻿using MediatR;
+using Microsoft.AspNetCore.Identity;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Logging;
 using Pipe.Infrastructure.Data;
@@ -6,6 +7,7 @@ using Pipe.Infrastructure.Extensions;
 using Pipe.Infrastructure.Helpers;
 using Pipe.Infrastructure.SmartTable;
 using Pipe.Module.Core.Areas.Core.ViewModels;
+using Pipe.Module.Core.Events;
 using Pipe.Module.Core.Models;
 using Pipe.Module.Core.Services;
 using System;
@@ -21,15 +23,17 @@ public class UserService : IUserService
 	private readonly IRepository<User> _userRepository;
 	private readonly UserManager<User> _userManager;
 	private readonly ILogger<UserService> _logger;
-
+	private readonly IMediator _mediator;
 	public UserService(
 		IRepository<User> userRepository,
 		UserManager<User> userManager,
-		ILogger<UserService> logger)
+		ILogger<UserService> logger,
+		IMediator mediator)
 	{
 		_userRepository = userRepository;
 		_userManager = userManager;
 		_logger = logger;
+		_mediator = mediator;
 	}
 
 
@@ -146,7 +150,11 @@ public class UserService : IUserService
 				_logger.LogWarning($"User creation failed: {errors}");
 				return Result<Guid>.Failure($"User creation failed: {errors}");
 			}
-
+			await _mediator.Publish(new UserCreatedEvent
+			{
+				UserId = user.Id,
+				Username = user.FullName
+			});
 			return Result<Guid>.Success(user.Id, "User created successfully");
 		}
 		catch (Exception ex)
@@ -195,7 +203,11 @@ public class UserService : IUserService
 				_logger.LogWarning($"User update failed: {errors}");
 				return Result.Failure($"User update failed: {errors}");
 			}
-
+			await _mediator.Publish(new UserUpdatedEvent
+			{
+				UserId = user.Id,
+				Username = user.FullName
+			});
 			return Result.Success("User updated successfully");
 		}
 		catch (Exception ex)
@@ -217,7 +229,11 @@ public class UserService : IUserService
 				return Result.NotFound("Пользователь не найден");
 
 			await SoftDeleteUser(user);
-
+			await _mediator.Publish(new UserDeletedEvent
+			{
+				UserId = user.Id,
+				Username = user.FullName
+			});
 			return Result.Success("Пользователь успешно удален");
 		}
 		catch (Exception ex)

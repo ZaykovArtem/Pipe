@@ -1,11 +1,13 @@
 using Microsoft.AspNetCore.Authentication;
 using Microsoft.EntityFrameworkCore;
+using Microsoft.Extensions.DependencyInjection;
 using Pipe.Infrastructure;
 using Pipe.Infrastructure.Data;
 using Pipe.Infrastructure.Hendlers;
 using Pipe.Infrastructure.Modules;
 using Pipe.Module.Core.Data;
 using Pipe.Module.Core.Extensions;
+using Pipe.Module.Notifications.Hubs;
 using Pipe.WebHost.Extensions;
 using Swashbuckle.AspNetCore.SwaggerUI;
 using System.Net.Http.Headers;
@@ -65,6 +67,8 @@ void ConfigureServices()
 		options.Cookie.Name = "XSRF-TOKEN";
 		options.Cookie.SecurePolicy = CookieSecurePolicy.SameAsRequest;
 	});
+
+	builder.Services.AddMediatR(cfg => cfg.RegisterServicesFromAssemblyContaining<Program>());
 
 	// Настройка кук для API
 	builder.Services.ConfigureApplicationCookie(options =>
@@ -166,7 +170,7 @@ void ConfigureMiddleware()
 	app.UseCors("AllowAll");
 
 	app.UseOutputCache();
-
+	app.MapHub<NotificationHub>("/notifications-hub");
 	app.UseEndpoints(endpoints =>
 	{
 		// 1. Маршруты для Account Controller (MVC)

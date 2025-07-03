@@ -13,6 +13,10 @@ namespace Pipe.Module.Core
     {
         public void ConfigureServices(IServiceCollection serviceCollection)
         {
+			serviceCollection.AddSignalR();
+
+
+			// Регистрируем хаб
 			serviceCollection.AddScoped<ITokenProvider, TokenProvider>();
 			serviceCollection.AddScoped<IUserService, UserService>();
 			serviceCollection.AddScoped<IRoleService, RoleService>();
@@ -27,6 +31,7 @@ namespace Pipe.Module.Core
 
         public void Configure(IApplicationBuilder app, IWebHostEnvironment env)
         {
-        }
+
+		}
     }
 }

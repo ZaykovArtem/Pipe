@@ -25,6 +25,7 @@
 
   <ItemGroup>
     <ProjectReference Include="..\Modules\Pipe.Module.Core\Pipe.Module.Core.csproj" />
+    <ProjectReference Include="..\Modules\Pipe.Module.Notifications\Pipe.Module.Notifications.csproj" />
     <ProjectReference Include="..\Modules\Pipe.Module.TestProject\Pipe.Module.TestProject.csproj" />
     <ProjectReference Include="..\Pipe.Infrastructure\Pipe.Infrastructure.csproj" />
   </ItemGroup>

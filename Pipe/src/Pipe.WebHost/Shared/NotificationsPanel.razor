@@ -1,0 +1,184 @@
+﻿@using Microsoft.AspNetCore.Http.Connections
+@using Microsoft.AspNetCore.Identity
+@using Microsoft.AspNetCore.SignalR.Client
+@using Pipe.Module.Core.Models
+@using Pipe.Module.Core.Services
+@using Pipe.Module.Notifications.Models
+@inject IApiService ApiService
+@inject UserManager<User> CurrentUserService
+@inject ISnackbar Snackbar
+@inject NavigationManager _navigationManager
+
+<MudBadge BadgeContent="@_unreadCount" Color="Color.Error" Visible="@(_unreadCount > 0)">
+    <MudIconButton Icon="@Icons.Material.Filled.Notifications" 
+                   OnClick="ToggleDrawer" />
+</MudBadge>
+
+    <MudPaper Elevation="5" Class="d-flex flex-column" Style="height: 100%;">
+        <div class="d-flex justify-space-between align-center pa-4">
+            <MudText Typo="Typo.h6">Уведомления</MudText>
+            <MudButton Variant="Variant.Text" 
+                        Color="Color.Primary" 
+                        OnClick="MarkAllAsRead"
+                        Disabled="@(_notifications.Count == 0)">
+                Прочитать все
+            </MudButton>
+        </div>
+        
+        @if (_isLoading)
+        {
+            <div class="d-flex justify-center pa-4">
+                <MudProgressCircular Color="Color.Primary" />
+            </div>
+        }
+        else if (_notifications.Count == 0)
+        {
+            <MudText Class="pa-4 text-center">Нет новых уведомлений</MudText>
+        }
+        else
+        {
+        <MudList T="Notification" Style="overflow-y: auto; flex: 1;">
+                @foreach (var notification in _notifications)
+                {
+                    <MudListItem 
+                        OnClick="() => MarkAsRead(notification.Id)"
+                        Href="@notification.Url"
+                        Class="@(notification.IsRead ? "" : "font-weight-bold")">
+                        <MudIcon Icon="@GetIcon(notification.Type)" Class="mr-3" />
+                        <div>
+                            <MudText>@notification.Title</MudText>
+                            <MudText Typo="Typo.body2">@notification.Message</MudText>
+                            <MudText Typo="Typo.caption" Class="text-secondary">
+                                @notification.CreatedAt.ToLocalTime().ToString("g")
+                            </MudText>
+                        </div>
+                    </MudListItem>
+                }
+            </MudList>
+        }
+    </MudPaper>
+
+@code {
+    private bool _isOpen;
+    private bool _isLoading;
+    private int _unreadCount;
+    private List<Notification> _notifications = new();
+    private HubConnection? _hubConnection;
+
+    protected override async Task OnInitializedAsync()
+    {
+        await LoadNotifications();
+        await InitSignalR();
+    }
+
+    private async Task LoadNotifications()
+    {
+        try
+        {
+            _isLoading = true;
+            
+            // Загружаем уведомления
+            var notificationsResponse = await ApiService.GetAsync<List<Notification>>("api/notifications/grid?limit=20");
+            if (notificationsResponse.IsSuccess)
+            {
+                _notifications = notificationsResponse.Value ?? new();
+            }
+
+            // Загружаем счетчик непрочитанных
+            var countResponse = await ApiService.GetAsync<int>("/notifications/unread/count");
+            if (countResponse.IsSuccess)
+            {
+                _unreadCount = countResponse.Value;
+            }
+        }
+        catch (Exception ex)
+        {
+            Snackbar.Add($"Ошибка загрузки: {ex.Message}", Severity.Error);
+        }
+        finally
+        {
+            _isLoading = false;
+            StateHasChanged();
+        }
+    }
+
+    private async Task InitSignalR()
+    {
+        try
+        {
+            var baseUrl = _navigationManager.BaseUri;
+            var hubUrl = new Uri(new Uri(baseUrl), "notificationHub").ToString();
+
+            _hubConnection = new HubConnectionBuilder()
+                .WithUrl(hubUrl, options =>
+                {
+                    options.SkipNegotiation = false;
+                    options.Transports = HttpTransportType.WebSockets;
+                })
+                .WithAutomaticReconnect()
+                .Build();
+
+            _hubConnection.On<Notification>("ReceiveNotification", notification =>
+            {
+                _notifications.Insert(0, notification);
+                _unreadCount++;
+                StateHasChanged();
+            });
+
+            await _hubConnection.StartAsync();
+        }
+        catch (Exception ex)
+        {
+            Snackbar.Add($"Ошибка SignalR: {ex.Message}", Severity.Error);
+        }
+    }
+
+    private async Task MarkAsRead(Guid id)
+    {
+        var response = await ApiService.PatchAsync<bool>($"/notifications/{id}/read", null);
+        if (response.IsSuccess)
+        {
+            var notification = _notifications.FirstOrDefault(n => n.Id == id);
+            if (notification != null)
+            {
+                notification.IsRead = true;
+                _unreadCount = Math.Max(0, _unreadCount - 1);
+                StateHasChanged();
+            }
+        }
+    }
+
+    private async Task MarkAllAsRead()
+    {
+        foreach (var notification in _notifications.Where(n => !n.IsRead))
+        {
+            await MarkAsRead(notification.Id);
+        }
+    }
+
+    private void ToggleDrawer()
+    {
+        _isOpen = !_isOpen;
+        if (_isOpen && _unreadCount > 0)
+        {
+            _unreadCount = 0;
+        }
+    }
+
+    private string GetIcon(NotificationType type) => type switch
+    {
+        NotificationType.UserCreated => Icons.Material.Filled.PersonAdd,
+        NotificationType.UserUpdated => Icons.Material.Filled.Edit,
+        NotificationType.UserDeleted => Icons.Material.Filled.Delete,
+        NotificationType.SystemAlert => Icons.Material.Filled.Warning,
+        _ => Icons.Material.Filled.Notifications
+    };
+
+    public async ValueTask DisposeAsync()
+    {
+        if (_hubConnection != null)
+        {
+            await _hubConnection.DisposeAsync();
+        }
+    }
+}

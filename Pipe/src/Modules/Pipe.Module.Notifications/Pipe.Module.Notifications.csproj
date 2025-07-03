@@ -11,4 +11,9 @@
     <ProjectReference Include="..\Pipe.Module.Core\Pipe.Module.Core.csproj" />
   </ItemGroup>
 
+  <ItemGroup>
+    <Folder Include="Models\DTOs\" />
+    <Folder Include="wwwroot\" />
+  </ItemGroup>
+
 </Project>

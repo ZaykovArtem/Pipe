@@ -1,6 +1,7 @@
-﻿@inherits LayoutComponentBase
+﻿@using Pipe.Module.Notifications.Services
+@inherits LayoutComponentBase
 @attribute [Authorize]
-
+@inject INotificationService NotificationService
 
 <AuthorizeView>
     <Authorized>
@@ -9,11 +10,19 @@
         <MudSnackbarProvider />
         <MudLayout>
             <MudAppBar Elevation="1">
+
                 <MudIconButton Icon="@Icons.Material.Filled.Menu" Color="Color.Inherit" Edge="Edge.Start" OnClick="@((e) => DrawerToggle())" />
                 <MudText Typo="Typo.h5" Class="ml-3">Application</MudText>
                 <MudSpacer />
                 <MudIconButton Icon="@Icons.Material.Filled.MoreVert" Color="Color.Inherit" Edge="Edge.End" />
+                <MudIconButton Color="Color.Inherit" Edge="Edge.End" Icon="@Icons.Material.Filled.Notifications" OnClick="@((e) => DrawerToggleNotifications())" />
+                <MudBadge Content="@_unreadCount" Color="Color.Error">
+                </MudBadge>
             </MudAppBar>
+
+            <MudDrawer @bind-Open="@_drawerOpenNotifications" Overlay="true" Elevation="1" Variant="@DrawerVariant.Temporary" Anchor="Anchor.End" OverlayAutoClose="@true">
+                <NotificationsPanel />
+            </MudDrawer>
             <MudDrawer @bind-Open="_drawerOpen" ClipMode="DrawerClipMode.Always" Elevation="2">
                 <NavMenu></NavMenu>
             </MudDrawer>
@@ -30,9 +39,14 @@
 
 @code {
     bool _drawerOpen = true;
-
+    bool _drawerOpenNotifications = false;
+    private int _unreadCount = 0;
     void DrawerToggle()
     {
         _drawerOpen = !_drawerOpen;
+    }
+    void DrawerToggleNotifications()
+    {
+        _drawerOpenNotifications = !_drawerOpenNotifications;
     }
 }

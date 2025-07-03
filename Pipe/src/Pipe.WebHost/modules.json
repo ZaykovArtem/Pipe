@@ -6,5 +6,9 @@
   {
     "id": "Pipe.Module.Core",
     "version": "1.0.0"
+  },
+  {
+    "id": "Pipe.Module.Notifications",
+    "version": "1.0.0"
   }
 ]
